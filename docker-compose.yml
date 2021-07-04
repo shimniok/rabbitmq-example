@@ -1,4 +1,4 @@
-version: '3.3'
+version: "3.3"
 
 networks:
   mynet:
@@ -14,9 +14,11 @@ services:
       - "15672:15672"
     networks:
       mynet:
-        aliases: 
+        aliases:
           - rabbitmq
     restart: always
+    volumes:
+      - ./rabbitmq/config/:/etc/rabbitmq/:rw
 
   rabbit-producer:
     hostname: rabbit-producer
@@ -33,16 +35,15 @@ services:
       - AMQP_HOST=rabbitmq
     restart: always
 
-  rabbit-consumer:
-    hostname: rabbit-consumer
-    container_name: rabbit-consumer
-    depends_on:
-      - rabbitmq
-    build: ./consumer/
-    networks:
-      - mynet
-    environment:
-      - QUEUE_NAME=my-queue
-      - AMQP_HOST=rabbitmq
-    restart: always
-
+  # rabbit-consumer:
+  #   hostname: rabbit-consumer
+  #   container_name: rabbit-consumer
+  #   depends_on:
+  #     - rabbitmq
+  #   build: ./consumer/
+  #   networks:
+  #     - mynet
+  #   environment:
+  #     - QUEUE_NAME=my-queue
+  #     - AMQP_HOST=rabbitmq
+  #   restart: always
