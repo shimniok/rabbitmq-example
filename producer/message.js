@@ -6,23 +6,65 @@ var amqp = require("amqplib/callback_api");
 const url = `amqp://${process.env.AMQP_HOST}`;
 const queue = process.env.QUEUE_NAME;
 
-console.log("RabbitMQ url", url);
-
-let channel = null;
-while (channel == null) {
-  amqp.connect(url, function (err, conn) {
-    if (conn) {
-      conn.createChannel(function (err, ch) {
-        channel = ch;
-      });
-    }
+async function waitAwhile(timeout) {
+  console.log("waiting to connect...");
+  return await new Promise((resolve, reject) => {
+    setTimeout(() => resolve("done!"), timeout);
   });
-
 }
 
+function initConnect(r) {
+  return new Promise((resolve, reject) => {
+    console.log("attempting to connect to", url, "...");
+    amqp.connect(url, function (err, conn) {
+      if (err) {
+        console.log("error connecting:", err.code);
+        reject("error connecting");
+      } else if (conn) {
+        resolve(conn);
+      } else {
+        console.log("connection is null for some reason");
+        reject("connection null for unknown reason");
+      }
+    });
+  });
+}
+
+function initChannel(conn) {
+  return new Promise((resolve, reject) => {
+    console.log("connected; creating channel...");
+    conn.createChannel(function (err, ch) {
+      if (err) {
+        console.log("error creating channel:", err.code);
+        reject("error creating channel");
+      } else {
+        console.log("channel created.");
+        resolve(ch);
+      }
+    });
+  });
+}
+
+async function init() {
+  ch = null;
+
+  await waitAwhile(10000);
+
+  return initConnect().then((conn) => {
+    return initChannel(conn);
+  });
+}
+
+init().then((ch) => {
+  channel = ch; // have to assign to channel else it won't work below; channel can't be a promise
+});
+
 process.on("exit", (code) => {
-  channel.close();
-  console.log(`Closing`);
+  console.log("closing");
+  if (typeof channel == amqp.channel) {
+    console.log("channel", channel);
+    channel.close();
+  }
 });
 
 router.post("/", function (req, res, next) {
