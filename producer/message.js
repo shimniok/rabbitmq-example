@@ -4,7 +4,8 @@ var router = express.Router();
 var amqp = require("amqplib/callback_api");
 
 const url = `amqp://${process.env.AMQP_HOST}`;
-const queue = process.env.QUEUE_NAME;
+const INBOX = "inbox";
+const OUTBOX = "outbox";
 
 async function waitAwhile(timeout) {
   console.log("waiting to connect...");
@@ -47,16 +48,23 @@ function initChannel(conn) {
 
 async function init() {
   ch = null;
-
   await waitAwhile(10000);
-
   return initConnect().then((conn) => {
     return initChannel(conn);
   });
 }
 
+var channel = null;
+
 init().then((ch) => {
   channel = ch; // have to assign to channel else it won't work below; channel can't be a promise
+  channel.assertQueue(INBOX, {
+    durable: true,
+  });
+  channel.assertQueue(OUTBOX, {
+    durable: true,
+  });
+  console.log("queues asserted");
 });
 
 process.on("exit", (code) => {
@@ -68,7 +76,7 @@ process.on("exit", (code) => {
 });
 
 router.post("/", function (req, res, next) {
-  channel.sendToQueue(queue, new Buffer.from(req.body.message));
+  channel.sendToQueue(OUTBOX, new Buffer.from(req.body.message), { persistent: true});
   res.render("index", { response: `Sent: ${req.body.message}` });
 });
 

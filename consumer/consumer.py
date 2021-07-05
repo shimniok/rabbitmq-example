@@ -3,37 +3,42 @@ import pika
 import time
 
 host = os.environ.get('AMQP_HOST')
-queue = os.environ.get('QUEUE_NAME')
+#inbox = os.environ.get('INBOX')
+outbox = os.environ.get('OUTBOX')
 
 
-def on_message(ch, method, properties, body):
+def on_message(channel, method, properties, body):
+    ''' handles message received from queue '''
     message = body.decode('UTF-8')
-    print(message)
+    print("message received: {}".format(message))
 
 
 def main():
+    ''' connects to rabbitmq, queue, starts consuming '''
     try:
         print("consumer: attempting to connect to {}".format(host))
-        
+
         connection_params = pika.ConnectionParameters(host=host)
         connection = pika.BlockingConnection(connection_params)
         channel = connection.channel()
 
-        channel.queue_declare(queue=queue)
+        print("queue: {}".format(outbox))
+
+        channel.queue_declare(queue=outbox, durable=True)
 
         channel.basic_consume(
-            queue=queue, on_message_callback=on_message, auto_ack=True)
+            queue=outbox, on_message_callback=on_message, auto_ack=True)
 
-        print('consumer: subscribed to ' + queue + ', waiting for messages...')
+        print('consumer: subscribed to ' + outbox + ', waiting for messages...')
 
         channel.start_consuming()
 
     except Exception as e:
         print("consumer: connection error: {}".format(e))
         time.sleep(5)
-        pass
 
 
 if __name__ == '__main__':
+    time.sleep(10)
     while (True):
         main()

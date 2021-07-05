@@ -31,19 +31,21 @@ services:
     networks:
       - mynet
     environment:
-      - QUEUE_NAME=my-queue
-      - AMQP_HOST=rabbitmq
+      AMQP_HOST: rabbitmq
+      INBOX: inbox
+      OUTBOX: outbox
     restart: always
 
-  # rabbit-consumer:
-  #   hostname: rabbit-consumer
-  #   container_name: rabbit-consumer
-  #   depends_on:
-  #     - rabbitmq
-  #   build: ./consumer/
-  #   networks:
-  #     - mynet
-  #   environment:
-  #     - QUEUE_NAME=my-queue
-  #     - AMQP_HOST=rabbitmq
-  #   restart: always
+  rabbit-consumer:
+    hostname: rabbit-consumer
+    container_name: rabbit-consumer
+    depends_on:
+      - rabbitmq
+    build: ./consumer/
+    networks:
+      - mynet
+    environment:
+      AMQP_HOST: rabbitmq
+      INBOX: inbox
+      OUTBOX: outbox
+    restart: always
